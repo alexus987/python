@@ -1,11 +1,3 @@
-def valid_date_type(arg_date_str):
-    """custom argparse *date* type for user dates values given from the command line"""
-    try:
-        return datetime.datetime.strptime(arg_date_str, "%Y-%m-%d")
-    except ValueError:
-        msg = "Given Date ({0}) not valid! Expected format, YYYY-MM-DD!".format(arg_date_str)
-        raise argparse.ArgumentTypeError(msg)
-        
 def valid_datetime_type(arg_datetime_str):
     """custom argparse type for user datetime values given from the command line"""
     try:
@@ -17,7 +9,11 @@ def valid_datetime_type(arg_datetime_str):
         
 if __name__ == '__main__':
 	from influxdb import InfluxDBClient
+	from kafka import SimpleProducer, KafkaClient
+
+	from bson import json_util
 	import json
+	import yaml
 	import argparse
 	import datetime
 
@@ -30,13 +26,21 @@ if __name__ == '__main__':
                         help='start datetime in format "YYYY-MM-DD HH:mm"')
 	args = parser.parse_args()
 	start_datetime_object = args.start_datetime
-	print('Data extraction start datetime is ' + start_datetime_object)
+	start_datetime = "'" + str(start_datetime_object) + "'" 
+	print('Data extraction start datetime is ' + start_datetime)
+
+	# prepare Kafka producer
+	kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
+	producer = SimpleProducer(kafka)
+	print('Kafka connection prepared')
 
 	# prepare InfluxDB connection
 	client = InfluxDBClient(host='influxdb-influxdb.default.svc.cluster.local', port=8086)
-
+	print('InfluxDB connection prepated')
+		
 	# Switch database
 	client.switch_database('prices')
+	print('InfluxDB database connected')
 
 	# get list of measurements
 	measurements = client.get_list_measurements()
@@ -53,19 +57,17 @@ if __name__ == '__main__':
 	test_dict = [x for x in measurements if x['name'] == 'ALC_allcoin']			  
 	
 	#generate output
-	for x in clear_BTC:
-	print(x['name'])
-	results = client.query(('SELECT * from "%s" WHERE time >= %s ORDER by time DESC LIMIT 1') %  (x['name'], datetime))
-	points = list(results.get_points())
-	#write output to a file
-	#data_file = x['name']+'.json'
-	#with open(data_file, 'w') as outfile:
-	#	json.dump(results.raw, outfile)
-	for i, p in enumerate(points):
-		#add measure name
-		points[i]['name'] = x['name']
-		print(points[i])
-		#send the query results to kafka
-		#producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
-	print(x['name'] + ' sent')	
-	
+	for x in test_dict:#this is just a simple dataset for testing connection
+	#for x in clear_BTC: #use this to get all filtered measurements from InfluxDB
+		print(x['name'])
+		results = client.query(('SELECT * from "%s" WHERE time >= %s ORDER by time DESC LIMIT 100') %  (x['name'], start_datetime))
+		points = list(results.get_points())
+
+		for i, p in enumerate(points):
+			#add measure name
+			points[i]['name'] = x['name']
+			#print(points[i])
+			#send the query results to kafka
+			producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
+		print(x['name'] + ' sent')	
+		
