@@ -52,15 +52,19 @@ if __name__ == '__main__':
 	#clear measurements ending with '_BTC'
 	clear_BTC = [x for x in clear_USD 
 				   if x['name'].endswith('_BTC') == False]
-
+	
 	#create test dataset
-	test_dict = [x for x in measurements if x['name'] == 'ALC_allcoin']			  
+	#clear_BTC1 = [x for x in clear_BTC 
+    #          if x['name'].endswith('coin') ]
+			   
+	#create another test dataset
+	test_dict = [x for x in measurements if x['name'] == 'BTC_bitcoin']			  
 	
 	#generate output
-	for x in test_dict:#this is just a simple dataset for testing connection
-	#for x in clear_BTC: #use this to get all filtered measurements from InfluxDB
+	for x in test_dict: 
+	
 		print(x['name'])
-		results = client.query(('SELECT * from "%s" WHERE time >= %s ORDER by time DESC LIMIT 100') %  (x['name'], start_datetime))
+		results = client.query(('SELECT * from "%s" WHERE time >= %s ORDER by time ASC ') %  (x['name'], start_datetime))
 		points = list(results.get_points())
 
 		for i, p in enumerate(points):
