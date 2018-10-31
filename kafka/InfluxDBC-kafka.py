@@ -5,6 +5,8 @@ from bson import json_util
 import yaml
 import json
 
+startdate = '2018-10-30'
+
 # prepare Kafka producer
 kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
 producer = SimpleProducer(kafka)
@@ -30,15 +32,18 @@ clear_USD = [x for x in measurements
 clear_BTC = [x for x in clear_USD 
                if x['name'].endswith('_BTC') == False]
 
+clear_BTC1 = [x for x in clear_BTC 
+               if x['name'].endswith('coin') ]
+
 #create test dataset
 test_dict = [x for x in measurements if x['name'] == 'ALC_allcoin']			  
 
 #try to read data from InfluxDB
 
-for x in test_dict: #this is just a simple dataset for testing connection
-#for x in clear_BTC: #use this to get all filtered measurements from InfluxDB
+#for x in test_dict: #this is just a simple dataset for testing connection
+for x in clear_BTC: #use this to get all filtered measurements from InfluxDB
 	print('handling ' + x['name'])
-	results = client.query(('SELECT * from "%s" WHERE time >= now() - 1d LIMIT 100') %  x['name'])
+	results = client.query(('SELECT * from "%s" WHERE time >= now() - 1d LIMIT 2') %  x['name'])
 	points = list(results.get_points())
 	for i, p in enumerate(points):
 		#add measure name
