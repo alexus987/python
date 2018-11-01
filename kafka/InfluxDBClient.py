@@ -1,5 +1,11 @@
+def valid_date_type(arg_date_str):
+    try:
+        return datetime.datetime.strptime(arg_date_str, "%Y-%m-%d")
+    except ValueError:
+        msg = "Given Date ({0}) not valid! Expected format, YYYY-MM-DD!".format(arg_date_str)
+        raise argparse.ArgumentTypeError(msg)
+
 def valid_datetime_type(arg_datetime_str):
-    """custom argparse type for user datetime values given from the command line"""
     try:
         return datetime.datetime.strptime(arg_datetime_str, "%Y-%m-%d %H:%M")
     except ValueError:
@@ -16,18 +22,34 @@ if __name__ == '__main__':
 	import yaml
 	import argparse
 	import datetime
+	
+	import pandas as pd
 
-	parser = argparse.ArgumentParser(description='Example of custom type usage')
-	parser.add_argument('-s', '--start-datetime',
-						dest='start_datetime',
-						type=valid_datetime_type,
+	parser = argparse.ArgumentParser(description='InfluxDB data parser')
+	parser.add_argument('-s', '--start-date',
+						dest='start_date',
+						type=valid_date_type,
                         default=None,
                         required=True,
-                        help='start datetime in format "YYYY-MM-DD HH:mm"')
+                        help='Requered start date paramter in format "YYYY-MM-DD"')
+	parser.add_argument('-e', '--end-date',
+						dest='end_date',
+						type=valid_date_type,
+                        default=datetime.datetime.today(),
+                        required=False,
+                        help='Optional end date paramter in format "YYYY-MM-DD", Default = today()')
 	args = parser.parse_args()
-	start_datetime_object = args.start_datetime
+	start_datetime_object = args.start_date
 	start_datetime = "'" + str(start_datetime_object) + "'" 
 	print('Data extraction start datetime is ' + start_datetime)
+	
+	end_datetime_object = args.end_date
+	end_datetime = "'" + str(end_datetime_object) + "'"
+	print('Data extraction last datetime is ' + end_datetime)
+
+	
+	# generate date range
+	data_range=pd.date_range(start_datetime, end_datetime)
 
 	# prepare Kafka producer
 	kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
@@ -60,18 +82,26 @@ if __name__ == '__main__':
 	#create another test dataset
 	test_dict = [x for x in measurements if x['name'] == 'BTC_bitcoin']			  
 	
-	#generate output
-	for x in test_dict: 
-	
-		print(x['name'])
-		results = client.query(('SELECT * from "%s" WHERE time >= %s ORDER by time ASC ') %  (x['name'], start_datetime))
-		points = list(results.get_points())
+	# date from data range
+	for d in data_range:
+		d=d.strftime('%Y-%m-%d')
+		print('Processing date:' + d)
+		
+		# measure from measures list
+		for x in test_dict: 
+			
+			print('Processing measure ' + x['name'])
+			query = """SELECT * from "%s" WHERE time >= '%s' """ %  (x['name'], d )
+			print(query)
+			results = client.query(query)
+			points = list(results.get_points())
+			print ("Query length : %d" % len (points) + " rows")
 
-		for i, p in enumerate(points):
-			#add measure name
-			points[i]['name'] = x['name']
-			#print(points[i])
-			#send the query results to kafka
-			producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
-		print(x['name'] + ' sent')	
+			for i, p in enumerate(points):
+				#add measure name
+				points[i]['name'] = x['name']
+				print(points[i])
+				#send the query results to kafka
+				producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
+			print(x['name'] + ' for ' + d + ' is sent')	
 		
