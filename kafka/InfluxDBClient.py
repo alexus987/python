@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		for x in test_dict: 
 			
 			print('Processing measure ' + x['name'])
-			query = """SELECT * from "%s" WHERE time >= '%s' """ %  (x['name'], d )
+			query = """SELECT * from "%s" WHERE time = '%s' """ %  (x['name'], d )
 			print(query)
 			results = client.query(query)
 			points = list(results.get_points())
