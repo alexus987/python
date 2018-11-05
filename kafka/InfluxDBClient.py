@@ -15,9 +15,9 @@ def valid_datetime_type(arg_datetime_str):
         
 if __name__ == '__main__':
 	from influxdb import InfluxDBClient
-	from kafka import SimpleProducer, KafkaClient
+	from kafka import KafkaProducer, KafkaClient
 
-	from bson import json_util
+	#from bson import json_util
 	import json
 	import yaml
 	import argparse
@@ -52,8 +52,9 @@ if __name__ == '__main__':
 	data_range=pd.date_range(start_datetime, end_datetime)
 
 	# prepare Kafka producer
-	kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
-	producer = SimpleProducer(kafka)
+	#kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
+	#producer = SimpleProducer(kafka)
+	producer = KafkaProducer(bootstrap_servers='blockchain-kafka-kafka.default.svc.cluster.local:9092')
 	print('Kafka connection prepared')
 
 	# prepare InfluxDB connection
@@ -91,7 +92,7 @@ if __name__ == '__main__':
 		for x in test_dict: 
 			
 			print('Processing measure ' + x['name'])
-			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +1d """ %  (x['name'], d, d )
+			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +7d """ %  (x['name'], d, d )
 			print(query)
 			results = client.query(query)
 			points = list(results.get_points())
@@ -102,6 +103,7 @@ if __name__ == '__main__':
 				#points[i]['name'] = x['name']
 				#print(points[i])
 				#send the query results to kafka
-				producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
+				#producer.send_messages('test', json.dumps(points[i]).encode('utf-8'))
+				producer.send('test', value=json.dumps(points[i]).encode('utf-8'))
 			print(x['name'] + ' for ' + d + ' is sent')	
 		
