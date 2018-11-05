@@ -91,7 +91,7 @@ if __name__ == '__main__':
 		for x in test_dict: 
 			
 			print('Processing measure ' + x['name'])
-			query = """SELECT * from "%s" WHERE time >= '%s' """ %  (x['name'], d )
+			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +1d """ %  (x['name'], d, d )
 			print(query)
 			results = client.query(query)
 			points = list(results.get_points())
@@ -99,8 +99,8 @@ if __name__ == '__main__':
 
 			for i, p in enumerate(points):
 				#add measure name
-				points[i]['name'] = x['name']
-				print(points[i])
+				#points[i]['name'] = x['name']
+				#print(points[i])
 				#send the query results to kafka
 				producer.send_messages('test', json.dumps(points[i], default=json_util.default).encode('utf-8'))
 			print(x['name'] + ' for ' + d + ' is sent')	
