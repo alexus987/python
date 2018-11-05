@@ -17,7 +17,6 @@ if __name__ == '__main__':
 	from influxdb import InfluxDBClient
 	from kafka import KafkaProducer, KafkaClient
 
-	#from bson import json_util
 	import json
 	import yaml
 	import argparse
@@ -90,7 +89,7 @@ if __name__ == '__main__':
 		for x in test_dict: 
 			
 			print('Processing measure ' + x['name'])
-			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +7d """ %  (x['name'], d, d )
+			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +1d """ %  (x['name'], d, d )
 			print(query)
 			results = client.query(query)
 			points = list(results.get_points())
