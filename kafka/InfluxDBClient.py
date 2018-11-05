@@ -52,8 +52,6 @@ if __name__ == '__main__':
 	data_range=pd.date_range(start_datetime, end_datetime)
 
 	# prepare Kafka producer
-	#kafka = KafkaClient('blockchain-kafka-kafka.default.svc.cluster.local:9092')
-	#producer = SimpleProducer(kafka)
 	producer = KafkaProducer(bootstrap_servers='blockchain-kafka-kafka.default.svc.cluster.local:9092')
 	print('Kafka connection prepared')
 
@@ -92,11 +90,7 @@ if __name__ == '__main__':
 		for x in test_dict: 
 			
 			print('Processing measure ' + x['name'])
-<<<<<<< HEAD
 			query = """SELECT * from "%s" WHERE time >= '%s' and time < '%s' +7d """ %  (x['name'], d, d )
-=======
-			query = """SELECT * from "%s" WHERE time = '%s' """ %  (x['name'], d )
->>>>>>> e35ba9b9d168c2669aa61087ce3a72076ffc0a8c
 			print(query)
 			results = client.query(query)
 			points = list(results.get_points())
@@ -104,10 +98,9 @@ if __name__ == '__main__':
 
 			for i, p in enumerate(points):
 				#add measure name
-				#points[i]['name'] = x['name']
+				points[i]['name'] = x['name']
 				#print(points[i])
 				#send the query results to kafka
-				#producer.send_messages('test', json.dumps(points[i]).encode('utf-8'))
 				producer.send('test', value=json.dumps(points[i]).encode('utf-8'))
 			print(x['name'] + ' for ' + d + ' is sent')	
 		
